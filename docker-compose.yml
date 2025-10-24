@@ -1,0 +1,19 @@
+services:
+  smtp4dev:
+    image: rnwood/smtp4dev:v3
+    container_name: bank-abc-smtp4dev
+    ports:
+      - "2525:25"   # SMTP server port
+      - "8081:80"   # Web UI port
+    environment:
+      - ServerOptions__Port=25
+      - ServerOptions__HostName=smtp4dev
+      - ServerOptions__AllowRemoteConnections=true
+      - ServerOptions__MessageSink=FileSystem
+      - ServerOptions__FileSystemMessageRepositoryOptions__Path=/smtp4dev
+    volumes:
+      - smtp4dev_data:/smtp4dev
+    restart: unless-stopped
+
+volumes:
+  smtp4dev_data:

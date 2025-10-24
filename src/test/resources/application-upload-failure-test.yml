@@ -1,0 +1,16 @@
+# Test configuration for upload validation failure testing
+spring:
+  profiles:
+    active: test,upload-failure-test
+
+# File storage configuration for testing
+app:
+  file-storage:
+    path: /tmp/test-upload-documents
+    max-size: 1048576  # 1MB for testing (smaller than DMN limits)
+
+# Logging configuration
+logging:
+  level:
+    com.bankabc.onboarding: DEBUG
+    org.camunda.bpm: DEBUG

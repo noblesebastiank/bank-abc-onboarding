@@ -1,0 +1,157 @@
+{
+  "workflow": {
+    "processDefinitionKey": "onboarding-process",
+    "name": "Customer Onboarding Workflow",
+    "version": "1.0.0",
+    "description": "Multi-step digital customer onboarding process with document upload and verification"
+  },
+  "steps": [
+    {
+      "id": "collect-info",
+      "name": "Collect Customer Information",
+      "description": "Gather personal information from customer",
+      "nextStepDescription": "Please provide your personal information to begin the onboarding process",
+      "delegateBean": "collectInfoDelegate",
+      "service": "OnboardingService",
+      "mandatory": true,
+      "order": 1,
+      "fields": [
+        "firstName",
+        "lastName", 
+        "gender",
+        "dob",
+        "phone",
+        "email",
+        "nationality",
+        "street",
+        "city",
+        "postalCode",
+        "country",
+        "ssn"
+      ]
+    },
+    {
+      "id": "wait-documents",
+      "name": "Wait for Document Upload",
+      "description": "Wait for customer to upload required documents",
+      "nextStepDescription": "Please upload your passport and photo documents to continue",
+      "delegateBean": null,
+      "service": null,
+      "mandatory": true,
+      "order": 2,
+      "type": "intermediateCatchEvent",
+      "messageName": "DocumentUploadedMessage"
+    },
+    {
+      "id": "upload-documents",
+      "name": "Process Document Upload",
+      "description": "Process uploaded passport and photo documents",
+      "nextStepDescription": "Documents processed successfully, verification in progress",
+      "delegateBean": "uploadDocumentsDelegate",
+      "service": "DocumentService",
+      "mandatory": true,
+      "order": 3,
+      "requiredDocuments": [
+        "passport",
+        "photo"
+      ]
+    },
+    {
+      "id": "kyc-verification",
+      "name": "KYC Verification",
+      "description": "Perform Know Your Customer verification",
+      "nextStepDescription": "KYC verification in progress, please wait",
+      "delegateBean": "kycDelegate",
+      "service": "VerificationService",
+      "mandatory": true,
+      "order": 4,
+      "timeout": "24h",
+      "errorHandling": {
+        "errorType": "KYC_VERIFICATION_FAILED",
+        "errorCode": "KYC_ERROR",
+        "defaultMessage": "Identity verification failed",
+        "retryable": true,
+        "maxRetries": 2,
+        "notificationTemplate": "kyc_failure"
+      }
+    },
+    {
+      "id": "address-verification",
+      "name": "Address Verification",
+      "description": "Verify customer residential address",
+      "nextStepDescription": "Address verification in progress, please wait",
+      "delegateBean": "addressVerificationDelegate",
+      "service": "VerificationService",
+      "mandatory": true,
+      "order": 5,
+      "timeout": "24h",
+      "errorHandling": {
+        "errorType": "ADDRESS_VERIFICATION_FAILED",
+        "errorCode": "ADDRESS_ERROR",
+        "defaultMessage": "Address verification failed",
+        "retryable": true,
+        "maxRetries": 2,
+        "notificationTemplate": "address_failure"
+      }
+    },
+    {
+      "id": "account-creation",
+      "name": "Create Bank Account",
+      "description": "Create customer bank account with IBAN",
+      "nextStepDescription": "Creating your bank account, please wait",
+      "delegateBean": "accountCreationDelegate",
+      "service": "AccountService",
+      "mandatory": true,
+      "order": 6,
+      "errorHandling": {
+        "errorType": "ACCOUNT_CREATION_FAILED",
+        "errorCode": "ACCOUNT_ERROR",
+        "defaultMessage": "Account creation failed",
+        "retryable": false,
+        "maxRetries": 0,
+        "notificationTemplate": "account_failure"
+      }
+    },
+    {
+      "id": "notify-customer",
+      "name": "Notify Customer",
+      "description": "Send notification to customer about account creation",
+      "nextStepDescription": "Sending account details to you via email and SMS",
+      "delegateBean": "notifyCustomerDelegate",
+      "service": "NotificationService",
+      "mandatory": true,
+      "order": 7
+    }
+  ],
+  "configuration": {
+    "maxRetries": 3,
+    "timeout": "4h",
+    "notificationChannels": ["email", "sms"],
+    "fileStorage": {
+      "type": "local",
+      "path": "/tmp/onboarding-documents",
+      "maxFileSize": "10MB",
+      "allowedTypes": ["image/jpeg", "image/png", "application/pdf"]
+    },
+    "verification": {
+      "kycProvider": "mock",
+      "addressProvider": "mock",
+      "autoApprove": false
+    }
+  },
+  "statuses": [
+    "INITIATED",
+    "INFO_COLLECTED",
+    "WAITING_FOR_DOCUMENTS",
+    "DOCUMENTS_UPLOADED",
+    "KYC_IN_PROGRESS",
+    "KYC_COMPLETED",
+    "ADDRESS_VERIFICATION_IN_PROGRESS",
+    "ADDRESS_VERIFICATION_COMPLETED",
+    "ACCOUNT_CREATION_IN_PROGRESS",
+    "ACCOUNT_CREATED",
+    "NOTIFICATION_SENT",
+    "COMPLETED",
+    "FAILED"
+  ]
+}

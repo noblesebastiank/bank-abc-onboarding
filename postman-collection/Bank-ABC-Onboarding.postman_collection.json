@@ -1,0 +1,564 @@
+{
+	"info": {
+		"_postman_id": "bank-abc-onboarding-collection",
+		"name": "Bank ABC Onboarding API",
+		"description": "Complete collection for testing the Bank ABC Digital Customer Onboarding API workflow",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "bank-abc-onboarding"
+	},
+	"item": [
+		{
+			"name": "Health Check",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has status field\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('status');",
+							"    pm.expect(jsonData.status).to.eql('UP');",
+							"});",
+							"",
+							"pm.test(\"Response time is less than 2000ms\", function () {",
+							"    pm.expect(pm.response.responseTime).to.be.below(2000);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/api/v1/onboarding/health",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"onboarding",
+						"health"
+					]
+				},
+				"description": "Simple health check endpoint for the onboarding workflow service"
+			},
+			"response": []
+		},
+		{
+			"name": "Start Onboarding Process",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 202\", function () {",
+							"    pm.response.to.have.status(202);",
+							"});",
+							"",
+							"pm.test(\"Response has processInstanceId\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('processInstanceId');",
+							"    pm.expect(jsonData.processInstanceId).to.be.a('string');",
+							"    ",
+							"    // Store processInstanceId for subsequent requests",
+							"    pm.collectionVariables.set('processInstanceId', jsonData.processInstanceId);",
+							"});",
+							"",
+							"pm.test(\"Response has status field\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('status');",
+							"    pm.expect(jsonData.status).to.eql('INFO_COLLECTED');",
+							"});",
+							"",
+							"pm.test(\"Response has nextStep field\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('nextStep');",
+							"    pm.expect(jsonData.nextStep).to.eql('document_upload');",
+							"});",
+							"",
+							"pm.test(\"Response time is less than 5000ms\", function () {",
+							"    pm.expect(pm.response.responseTime).to.be.below(5000);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"firstName\": \"Emma\",\n  \"lastName\": \"de Vries\",\n  \"gender\": \"F\",\n  \"dob\": \"1990-05-20\",\n  \"phone\": \"+31612345678\",\n  \"email\": \"emma.devries@example.com\",\n  \"nationality\": \"Dutch\",\n  \"street\": \"Keizersgracht 1\",\n  \"city\": \"Amsterdam\",\n  \"postalCode\": \"1015CD\",\n  \"country\": \"Netherlands\",\n  \"ssn\": \"123-45-6789\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/v1/onboarding/start",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"onboarding",
+						"start"
+					]
+				},
+				"description": "Initiates the multi-step digital customer onboarding process for Bank ABC. This is Step 1: Collect customer personal information and start BPMN workflow."
+			},
+			"response": []
+		},
+		{
+			"name": "Upload Documents",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has processInstanceId\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('processInstanceId');",
+							"    pm.expect(jsonData.processInstanceId).to.eql(pm.collectionVariables.get('processInstanceId'));",
+							"});",
+							"",
+							"pm.test(\"Response has status field\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('status');",
+							"    pm.expect(jsonData.status).to.eql('DOCUMENTS_UPLOADED');",
+							"});",
+							"",
+							"pm.test(\"Documents uploaded successfully\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('passportUploaded');",
+							"    pm.expect(jsonData).to.have.property('photoUploaded');",
+							"    pm.expect(jsonData.passportUploaded).to.be.true;",
+							"    pm.expect(jsonData.photoUploaded).to.be.true;",
+							"});",
+							"",
+							"pm.test(\"Response time is less than 10000ms\", function () {",
+							"    pm.expect(pm.response.responseTime).to.be.below(10000);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "passport",
+							"type": "file",
+							"src": [],
+							"description": "Passport document (PDF, max 5MB)"
+						},
+						{
+							"key": "photo",
+							"type": "file",
+							"src": [],
+							"description": "Customer photo (JPEG or PNG, max 2MB)"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/v1/onboarding/{{processInstanceId}}/documents",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"onboarding",
+						"{{processInstanceId}}",
+						"documents"
+					]
+				},
+				"description": "Uploads required documents (passport and photo) for the onboarding process. This is Step 2: Document upload that resumes the BPMN workflow."
+			},
+			"response": []
+		},
+		{
+			"name": "Check Onboarding Status",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has processInstanceId\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('processInstanceId');",
+							"    pm.expect(jsonData.processInstanceId).to.eql(pm.collectionVariables.get('processInstanceId'));",
+							"});",
+							"",
+							"pm.test(\"Response has status field\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('status');",
+							"    pm.expect(jsonData.status).to.be.a('string');",
+							"});",
+							"",
+							"pm.test(\"Response has required fields\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('createdAt');",
+							"    pm.expect(jsonData).to.have.property('updatedAt');",
+							"    pm.expect(jsonData).to.have.property('kycVerified');",
+							"    pm.expect(jsonData).to.have.property('addressVerified');",
+							"});",
+							"",
+							"pm.test(\"Response time is less than 2000ms\", function () {",
+							"    pm.expect(pm.response.responseTime).to.be.below(2000);",
+							"});",
+							"",
+							"// Log current status for monitoring",
+							"const jsonData = pm.response.json();",
+							"console.log('Current Status:', jsonData.status);",
+							"console.log('Current Step:', jsonData.currentStep);",
+							"console.log('Next Step:', jsonData.nextStep);",
+							"",
+							"// Check if process is completed",
+							"if (jsonData.status === 'COMPLETED') {",
+							"    console.log('✅ Onboarding completed successfully!');",
+							"    console.log('Account Number:', jsonData.accountNumber);",
+							"} else if (jsonData.status === 'FAILED') {",
+							"    console.log('❌ Onboarding failed:', jsonData.errorMessage);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/api/v1/onboarding/{{processInstanceId}}/status",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"onboarding",
+						"{{processInstanceId}}",
+						"status"
+					]
+				},
+				"description": "Retrieves the current status and progress of an onboarding process. Returns detailed information about the workflow progress including current step and next step."
+			},
+			"response": []
+		},
+		{
+			"name": "Error Scenarios",
+			"item": [
+				{
+					"name": "Duplicate Customer (409 Conflict)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 409\", function () {",
+									"    pm.response.to.have.status(409);",
+									"});",
+									"",
+									"pm.test(\"Response has errorName\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('errorName');",
+									"    pm.expect(jsonData.errorName).to.eql('CUSTOMER_ALREADY_EXISTS');",
+									"});",
+									"",
+									"pm.test(\"Response has message\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('message');",
+									"    pm.expect(jsonData.message).to.include('already exists');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Emma\",\n  \"lastName\": \"de Vries\",\n  \"gender\": \"F\",\n  \"dob\": \"1990-05-20\",\n  \"phone\": \"+31612345678\",\n  \"email\": \"emma.devries@example.com\",\n  \"nationality\": \"Dutch\",\n  \"street\": \"Keizersgracht 1\",\n  \"city\": \"Amsterdam\",\n  \"postalCode\": \"1015CD\",\n  \"country\": \"Netherlands\",\n  \"ssn\": \"123-45-6789\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/onboarding/start",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"onboarding",
+								"start"
+							]
+						},
+						"description": "Test duplicate customer scenario - should return 409 Conflict"
+					},
+					"response": []
+				},
+				{
+					"name": "Invalid Request (400 Bad Request)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Response has validation errors\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('status');",
+									"    pm.expect(jsonData).to.have.property('errors');",
+									"    pm.expect(jsonData.errors).to.be.an('array');",
+									"    pm.expect(jsonData.errors.length).to.be.greaterThan(0);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"E\",\n  \"lastName\": \"de Vries\",\n  \"gender\": \"F\",\n  \"dob\": \"1990-05-20\",\n  \"phone\": \"+31612345678\",\n  \"email\": \"emma.devries@example.com\",\n  \"nationality\": \"Dutch\",\n  \"street\": \"Keizersgracht 1\",\n  \"city\": \"Amsterdam\",\n  \"postalCode\": \"1015CD\",\n  \"country\": \"Netherlands\",\n  \"ssn\": \"123-45-6789\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/onboarding/start",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"onboarding",
+								"start"
+							]
+						},
+						"description": "Test invalid request scenario - should return 400 Bad Request with validation errors"
+					},
+					"response": []
+				},
+				{
+					"name": "Process Not Found (404 Not Found)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"",
+									"pm.test(\"Response has errorName\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('errorName');",
+									"    pm.expect(jsonData.errorName).to.eql('ONBOARDING_NOT_FOUND');",
+									"});",
+									"",
+									"pm.test(\"Response has message\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('message');",
+									"    pm.expect(jsonData.message).to.include('not found');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/onboarding/invalid-id/status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"onboarding",
+								"invalid-id",
+								"status"
+							]
+						},
+						"description": "Test process not found scenario - should return 404 Not Found"
+					},
+					"response": []
+				}
+			],
+			"description": "Collection of error scenario tests"
+		},
+		{
+			"name": "Additional Endpoints",
+			"item": [
+				{
+					"name": "Swagger UI",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/swagger-ui.html",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"swagger-ui.html"
+							]
+						},
+						"description": "Access Swagger UI for API documentation"
+					},
+					"response": []
+				},
+				{
+					"name": "H2 Database Console",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/h2-console",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"h2-console"
+							]
+						},
+						"description": "Access H2 Database Console (JDBC URL: jdbc:h2:mem:onboardingdb, Username: sa, Password: password)"
+					},
+					"response": []
+				},
+				{
+					"name": "Camunda Cockpit",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/camunda",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"camunda"
+							]
+						},
+						"description": "Access Camunda Cockpit (Username: admin, Password: admin)"
+					},
+					"response": []
+				}
+			],
+			"description": "Additional endpoints for monitoring and debugging"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Pre-request script for the entire collection",
+					"console.log('Starting Bank ABC Onboarding API test...');",
+					"console.log('Base URL:', pm.collectionVariables.get('baseUrl'));"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Global test script for the entire collection",
+					"pm.test('Response time is reasonable', function () {",
+					"    pm.expect(pm.response.responseTime).to.be.below(30000);",
+					"});",
+					"",
+					"pm.test('Response has proper content type', function () {",
+					"    if (pm.response.headers.get('Content-Type')) {",
+					"        pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+					"    }",
+					"});"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "processInstanceId",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

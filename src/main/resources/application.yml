@@ -1,0 +1,153 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: bank-abc-onboarding
+  
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:onboardingdb}
+    driver-class-name: org.h2.Driver
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:password}
+  
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+  
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+  mail:
+    host: ${SPRING_MAIL_HOST:localhost}
+    port: ${SPRING_MAIL_PORT:2525}
+    username: ${SPRING_MAIL_USERNAME:}
+    password: ${SPRING_MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+          ssl:
+            trust: localhost
+    from: ${SPRING_MAIL_FROM:noreply@bankabc.com}
+
+# OpenAPI/Swagger Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+  show-actuator: true
+
+# Logging Configuration
+logging:
+  level:
+    com.bankabc.onboarding: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Camunda BPMN Configuration
+camunda:
+  bpm:
+    admin-user:
+      id: admin
+      password: admin
+    webapp:
+      enabled: true
+      index-redirect-enabled: false
+    database:
+      schema-update: true
+    job-execution:
+      enabled: true
+    metrics:
+      enabled: true
+    rest:
+      enabled: true
+    deployment-resource-pattern: classpath*:**/*.bpmn, classpath*:**/*.bpmn20.xml
+    process-engine-name: default
+    process-engine-configuration:
+      database-schema-update: true
+      job-execution-enabled: true
+      metrics-enabled: true
+      history-level: full
+      default-serialization-format: application/json
+
+# File Storage Configuration
+app:
+  file-storage:
+    path: ${APP_FILE_STORAGE_PATH:/tmp/onboarding-documents}
+    max-size: ${APP_FILE_STORAGE_MAX_SIZE:10485760}  # 10MB
+
+# Onboarding Configuration
+onboarding:
+  files:
+    passport:
+      max-size: 5242880  # 5MB
+      mime-type: application/pdf
+    photo:
+      max-size: 2097152  # 2MB
+      mime-types: image/jpeg,image/png
+
+# Bank Configuration for Email Templates
+bank:
+  website:
+    url: ${BANK_WEBSITE_URL:https://www.bankabc.com}
+  support:
+    email: ${BANK_SUPPORT_EMAIL:support@bankabc.com}
+  phone:
+    number: ${BANK_PHONE_NUMBER:1-800-BANK-ABC}
+
+# Spring Boot Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,camunda
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: always
+      probes:
+        enabled: true
+    info:
+      enabled: true
+  health:
+    db:
+      enabled: true
+    diskspace:
+      enabled: true
+    defaults:
+      enabled: true
+  info:
+    env:
+      enabled: true
+    java:
+      enabled: true
+    os:
+      enabled: true
+

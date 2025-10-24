@@ -1,0 +1,6 @@
+# Test configuration for KYC failure scenario
+verification:
+  kyc:
+    success-rate: 0.0  # 0% success rate to force KYC failure
+  address:
+    success-rate: 1.0  # 100% success rate for address verification

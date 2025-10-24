@@ -1,0 +1,436 @@
+openapi: 3.0.3
+info:
+  title: Bank ABC Digital Customer Onboarding API
+  description: |
+    Spring Boot microservice for digital customer onboarding at Bank ABC (Netherlands-based bank).
+    This API enables customers to open new bank accounts online instead of visiting a branch.
+    The goal is to complete onboarding within 4 hours, including KYC verification and account creation.
+  version: 1.0.0
+  contact:
+    name: Bank ABC Development Team
+    email: dev@bankabc.nl
+  license:
+    name: Proprietary
+    url: https://bankabc.nl/license
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+paths:
+  /api/v1/onboarding/start:
+    post:
+      summary: Start multi-step onboarding process
+      description: |
+        Initiates the multi-step digital customer onboarding process for Bank ABC.
+        This is Step 1: Collect customer personal information and start BPMN workflow.
+        Returns process instance ID for tracking the workflow progress.
+      operationId: startOnboardingWorkflow
+      tags:
+        - Onboarding Workflow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OnboardingStartRequest'
+            examples:
+              emma_devries:
+                summary: Emma de Vries onboarding
+                value:
+                  firstName: "Emma"
+                  lastName: "de Vries"
+                  gender: "F"
+                  dob: "1990-05-20"
+                  phone: "+31612345678"
+                  email: "emma.devries@example.com"
+                  nationality: "Dutch"
+                  street: "Keizersgracht 1"
+                  city: "Amsterdam"
+                  postalCode: "1015CD"
+                  country: "Netherlands"
+                  ssn: "123-45-6789"
+      responses:
+        '202':
+          description: Onboarding process initiated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnboardingStartResponse'
+        4XX:
+          description: Invalid Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefaultApiErrorResponse'
+        5XX:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefaultApiErrorResponse'
+
+  /api/v1/onboarding/{processInstanceId}/documents:
+    post:
+      summary: Upload documents (Step 2)
+      description: |
+        Uploads required documents (passport and photo) for the onboarding process.
+        This is Step 2: Document upload that resumes the BPMN workflow.
+        Accepts multipart form data with passport and photo files.
+      operationId: uploadDocuments
+      tags:
+        - Onboarding Workflow
+      parameters:
+        - name: processInstanceId
+          in: path
+          required: true
+          description: BPMN process instance ID from start response
+          schema:
+            type: string
+            example: "12345"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                passport:
+                  type: string
+                  format: binary
+                  description: Passport document (PDF)
+                photo:
+                  type: string
+                  format: binary
+                  description: Customer photo (JPEG or PNG)
+              required:
+                - passport
+                - photo
+      responses:
+        '200':
+          description: Documents uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentUploadResponse'
+        4XX:
+          description: Invalid Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefaultApiErrorResponse'
+        5XX:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefaultApiErrorResponse'
+
+  /api/v1/onboarding/{processInstanceId}/status:
+    get:
+      summary: Get onboarding status
+      description: |
+        Retrieves the current status and progress of an onboarding process.
+        Returns detailed information about the workflow progress including
+        current step and next step.
+      operationId: getOnboardingStatus
+      tags:
+        - Onboarding Workflow
+      parameters:
+        - name: processInstanceId
+          in: path
+          required: true
+          description: BPMN process instance ID
+          schema:
+            type: string
+            example: "12345"
+      responses:
+        '200':
+          description: Onboarding status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnboardingStatusResponse'
+        4XX:
+          description: Invalid Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefaultApiErrorResponse'
+        5XX:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefaultApiErrorResponse'
+
+components:
+  schemas:
+    OnboardingStartRequest:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - gender
+        - dob
+        - phone
+        - email
+        - nationality
+        - street
+        - city
+        - postalCode
+        - country
+        - ssn
+      properties:
+        firstName:
+          type: string
+          minLength: 2
+          maxLength: 50
+          description: Customer's first name
+          example: "Emma"
+          x-validation-message: "First name must be between 2 and 50 characters"
+        lastName:
+          type: string
+          minLength: 2
+          maxLength: 50
+          description: Customer's last name
+          example: "de Vries"
+          x-validation-message: "Last name must be between 2 and 50 characters"
+        gender:
+          type: string
+          enum: [M, F, O]
+          description: Customer's gender (M=Male, F=Female, O=Other)
+          example: "F"
+          x-validation-message: "Gender must be M, F, or O"
+        dob:
+          type: string
+          format: date
+          description: Customer's date of birth (YYYY-MM-DD). Must be in the past.
+          example: "1990-05-20"
+          x-validation-message: "Date of birth must be in the past"
+        phone:
+          type: string
+          pattern: '^\+[1-9]\d{1,14}$'
+          minLength: 8
+          maxLength: 20
+          description: Customer's phone number in international format
+          example: "+31612345678"
+          x-validation-message: "Phone number must be in international format"
+        email:
+          type: string
+          format: email
+          maxLength: 100
+          description: Customer's email address
+          example: "emma.devries@example.com"
+          x-validation-message: "Email must be valid"
+        nationality:
+          type: string
+          minLength: 2
+          maxLength: 50
+          description: Customer's nationality
+          example: "Dutch"
+          x-validation-message: "Nationality must be between 2 and 50 characters"
+        street:
+          type: string
+          minLength: 5
+          maxLength: 100
+          description: Street address
+          example: "Keizersgracht 1"
+          x-validation-message: "Street address must be between 5 and 100 characters"
+        city:
+          type: string
+          minLength: 2
+          maxLength: 50
+          description: City name
+          example: "Amsterdam"
+          x-validation-message: "City must be between 2 and 50 characters"
+        postalCode:
+          type: string
+          minLength: 4
+          maxLength: 10
+          description: Postal/ZIP code
+          example: "1015CD"
+          x-validation-message: "Postal code must be between 4 and 10 characters"
+        country:
+          type: string
+          minLength: 2
+          maxLength: 50
+          description: Country name
+          example: "Netherlands"
+          x-validation-message: "Country must be between 2 and 50 characters"
+        ssn:
+          type: string
+          pattern: '^\d{3}-\d{2}-\d{4}$'
+          minLength: 11
+          maxLength: 11
+          description: Social Security Number (XXX-XX-XXXX format)
+          example: "123-45-6789"
+          x-validation-message: "SSN must be in XXX-XX-XXXX format"
+
+    OnboardingStartResponse:
+      type: object
+      required:
+        - processInstanceId
+        - status
+        - createdAt
+      properties:
+        processInstanceId:
+          type: string
+          description: BPMN process instance ID for tracking
+          example: "12345"
+        status:
+          type: string
+          description: Current onboarding status
+          example: "INFO_COLLECTED"
+        message:
+          type: string
+          description: Human-readable status message
+          example: "Onboarding process started successfully"
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when process was started
+          example: "2024-01-15T10:30:00Z"
+        nextStep:
+          type: string
+          description: Next step in the workflow
+          example: "document_upload"
+        nextStepDescription:
+          type: string
+          description: Description of the next step
+          example: "Please upload your passport and photo documents"
+
+    DocumentUploadResponse:
+      type: object
+      required:
+        - processInstanceId
+        - status
+        - uploadedAt
+      properties:
+        processInstanceId:
+          type: string
+          description: BPMN process instance ID
+          example: "12345"
+        status:
+          type: string
+          description: Current onboarding status
+          example: "DOCUMENTS_UPLOADED"
+        message:
+          type: string
+          description: Human-readable status message
+          example: "Documents uploaded successfully"
+        uploadedAt:
+          type: string
+          format: date-time
+          description: Timestamp when documents were uploaded
+          example: "2024-01-15T10:35:00Z"
+        nextStep:
+          type: string
+          description: Next step in the workflow
+          example: "kyc_verification"
+        nextStepDescription:
+          type: string
+          description: Description of the next step
+          example: "Documents processed, verification in progress"
+        passportUploaded:
+          type: boolean
+          description: Whether passport was uploaded successfully
+          example: true
+        photoUploaded:
+          type: boolean
+          description: Whether photo was uploaded successfully
+          example: true
+
+    OnboardingStatusResponse:
+      type: object
+      required:
+        - processInstanceId
+        - status
+        - createdAt
+      properties:
+        processInstanceId:
+          type: string
+          description: BPMN process instance ID
+          example: "12345"
+        status:
+          type: string
+          enum: [INITIATED, INFO_COLLECTED, WAITING_FOR_DOCUMENTS, DOCUMENTS_UPLOADED, 
+                 KYC_IN_PROGRESS, KYC_COMPLETED, ADDRESS_VERIFICATION_IN_PROGRESS, 
+                 ADDRESS_VERIFICATION_COMPLETED, ACCOUNT_CREATION_IN_PROGRESS, 
+                 ACCOUNT_CREATED, NOTIFICATION_SENT, COMPLETED, FAILED]
+          description: Current status of the onboarding process
+          example: "KYC_IN_PROGRESS"
+        message:
+          type: string
+          description: Human-readable status message
+          example: "KYC verification in progress"
+        accountNumber:
+          type: string
+          pattern: '^NL\d{2}[A-Z]{4}\d{10}$'
+          description: Generated IBAN-style account number (if created)
+          example: "NL12BANK0000123456"
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when onboarding was initiated
+          example: "2024-01-15T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when status was last updated
+          example: "2024-01-15T10:35:00Z"
+        completedAt:
+          type: string
+          format: date-time
+          description: Timestamp when onboarding was completed
+          example: "2024-01-15T14:30:00Z"
+        kycVerified:
+          type: boolean
+          description: Whether KYC verification is completed
+          example: true
+        addressVerified:
+          type: boolean
+          description: Whether address verification is completed
+          example: true
+        currentStep:
+          type: string
+          description: Current step in the workflow
+          example: "KYC verification in progress"
+        nextStep:
+          type: string
+          description: Next step in the workflow
+          example: "address_verification"
+        errorMessage:
+          type: string
+          description: Error message if process failed
+          example: "KYC verification failed"
+
+
+    DefaultApiErrorResponse:
+      type: object
+      required:
+        - errorName
+        - message
+        - timestamp
+      properties:
+        errorName:
+          type: string
+          description: A short, human-readable error identifier.
+        message:
+          type: string
+          description: A human-readable explanation of the error.
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the error occurred.
+        additionalDetails:
+          type: object
+          additionalProperties:
+            type: string
+          description: Additional details about the error in key-value format.
+      description: Default API error response model that matches the Java DefaultApiError class structure.
+
+tags:
+  - name: Onboarding Workflow
+    description: Multi-step customer onboarding workflow with BPMN process orchestration
+
