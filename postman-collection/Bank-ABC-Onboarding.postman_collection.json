@@ -258,7 +258,7 @@
 							"    pm.expect(jsonData.processInstanceId).to.be.a('string');",
 							"    ",
 							"    // Store processInstanceId for subsequent requests",
-							"    pm.collectionVariables.set('processInstanceId', jsonData.processInstanceId);",
+							"    pm.environment.set('processInstanceId', jsonData.processInstanceId);",
 							"});",
 							"",
 							"pm.test(\"Response has status field\", function () {",
