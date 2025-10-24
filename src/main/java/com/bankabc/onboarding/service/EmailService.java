@@ -79,7 +79,13 @@ public class EmailService {
 
         configureEmailRecipients(email, helper);
         helper.setSubject(email.getSubject());
-        helper.setText(emailUtil.buildEmailBody(email), true);
+        
+        // Use template-based content if available, otherwise use simple body content
+        String emailBody = emailUtil.buildEmailBody(email);
+        if (emailBody == null || emailBody.isEmpty()) {
+            emailBody = email.getBody();
+        }
+        helper.setText(emailBody, true);
         addAttachmentIfPresent(email, helper);
 
         mailSender.send(mimeMessage);

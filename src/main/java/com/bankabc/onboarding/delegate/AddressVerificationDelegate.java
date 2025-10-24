@@ -82,7 +82,7 @@ public class AddressVerificationDelegate implements JavaDelegate {
             execution.setVariable(ApplicationConstants.ProcessVariables.ERROR_TYPE, e.getClass().getSimpleName());
             execution.setVariable(ApplicationConstants.ProcessVariables.FAILED_STEP_ID, ApplicationConstants.ProcessVariables.STEP_ADDRESS_VERIFICATION);
             // Convert regular exceptions to BPMN errors to trigger boundary events
-            throw new BpmnError("GENERIC_ERROR", "Address verification error: " + e.getMessage());
+            throw new BpmnError("ADDRESS_VERIFICATION_FAILED", "Address verification error: " + e.getMessage());
         }
     }
 }

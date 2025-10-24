@@ -91,8 +91,6 @@ class EmailUtilTest {
         testEmail.setTemplateName(templateName);
         testEmail.setBody(null);
 
-        when(freemarkerConfig.getTemplate(templateName)).thenThrow(new IOException("Template not found"));
-
         // When
         String result = emailUtil.buildEmailBody(testEmail);
 
@@ -106,8 +104,6 @@ class EmailUtilTest {
         String templateName = "test-template.ftl";
         testEmail.setTemplateName(templateName);
         testEmail.setBody(null);
-
-        when(freemarkerConfig.getTemplate(templateName)).thenThrow(new TemplateException("Template error", null));
 
         // When
         String result = emailUtil.buildEmailBody(testEmail);
@@ -223,8 +219,8 @@ class EmailUtilTest {
         Map<String, Object> templateModel = new HashMap<>();
         templateModel.put("subject", "Test Subject");
         
-        when(freemarkerConfig.getTemplate("Header.ftl")).thenThrow(new Exception("Template not found"));
-        when(freemarkerConfig.getTemplate("Footer.ftl")).thenThrow(new Exception("Template not found"));
+        when(freemarkerConfig.getTemplate("Header.ftl")).thenThrow(new RuntimeException("Template not found"));
+        when(freemarkerConfig.getTemplate("Footer.ftl")).thenThrow(new RuntimeException("Template not found"));
 
         // When
         String[] result = emailUtil.buildHeaderFooterTemplate(templateModel);

@@ -72,8 +72,7 @@ public class FileStorageService {
     }
 
     /**
-     * Basic file validation for storage (file existence and size only).
-     * Detailed validation is handled by DMN decision table.
+     * Comprehensive file validation for storage including content type and document type validation.
      *
      * @param file The uploaded file
      * @param documentType The type of document
@@ -108,7 +107,81 @@ public class FileStorageService {
             );
         }
         
-        log.debug("Basic file validation passed for: {} with type: {}", file.getOriginalFilename(), documentType);
+        // Validate content type
+        String contentType = file.getContentType();
+        if (contentType == null) {
+            throw new DefaultApiError(
+                HttpStatus.BAD_REQUEST,
+                ErrorTypes.FILE_VALIDATION_FAILED.name(),
+                ErrorTypes.FILE_VALIDATION_FAILED.getMessage(),
+                Map.of(
+                    "fileName", file.getOriginalFilename() != null ? file.getOriginalFilename() : "unknown",
+                    "documentType", documentType,
+                    "validationError", "File content type cannot be determined"
+                )
+            );
+        }
+        
+        // Validate document type and content type combination
+        validateDocumentTypeAndContentType(documentType, contentType, file.getOriginalFilename());
+        
+        log.debug("File validation passed for: {} with type: {}", file.getOriginalFilename(), documentType);
+    }
+    
+    /**
+     * Validates document type and content type combination.
+     *
+     * @param documentType The type of document
+     * @param contentType The content type of the file
+     * @param fileName The original filename
+     * @throws DefaultApiError if validation fails
+     */
+    private void validateDocumentTypeAndContentType(String documentType, String contentType, String fileName) {
+        switch (documentType.toLowerCase()) {
+            case "passport":
+                if (!"application/pdf".equals(contentType)) {
+                    throw new DefaultApiError(
+                        HttpStatus.BAD_REQUEST,
+                        ErrorTypes.FILE_VALIDATION_FAILED.name(),
+                        ErrorTypes.FILE_VALIDATION_FAILED.getMessage(),
+                        Map.of(
+                            "fileName", fileName != null ? fileName : "unknown",
+                            "documentType", documentType,
+                            "contentType", contentType,
+                            "allowedTypes", "application/pdf",
+                            "validationError", "Invalid file type for passport"
+                        )
+                    );
+                }
+                break;
+            case "photo":
+                if (!"image/jpeg".equals(contentType) && !"image/png".equals(contentType)) {
+                    throw new DefaultApiError(
+                        HttpStatus.BAD_REQUEST,
+                        ErrorTypes.FILE_VALIDATION_FAILED.name(),
+                        ErrorTypes.FILE_VALIDATION_FAILED.getMessage(),
+                        Map.of(
+                            "fileName", fileName != null ? fileName : "unknown",
+                            "documentType", documentType,
+                            "contentType", contentType,
+                            "allowedTypes", "image/jpeg, image/png",
+                            "validationError", "Invalid file type for photo"
+                        )
+                    );
+                }
+                break;
+            default:
+                throw new DefaultApiError(
+                    HttpStatus.BAD_REQUEST,
+                    ErrorTypes.FILE_VALIDATION_FAILED.name(),
+                    ErrorTypes.FILE_VALIDATION_FAILED.getMessage(),
+                    Map.of(
+                        "fileName", fileName != null ? fileName : "unknown",
+                        "documentType", documentType,
+                        "validationError", "Unknown document type"
+                    )
+                );
+        }
     }
 
 

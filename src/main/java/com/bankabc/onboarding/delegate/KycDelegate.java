@@ -47,9 +47,7 @@ public class KycDelegate implements JavaDelegate {
                 onboarding.getFirstName(),
                 onboarding.getLastName(),
                 onboarding.getDateOfBirth(),
-                onboarding.getSsn(),
-                onboarding.getPassportPath(),
-                onboarding.getPhotoPath()
+                onboarding.getSsn()
             );
 
             if (kycResult) {
@@ -77,7 +75,7 @@ public class KycDelegate implements JavaDelegate {
                 log.warn("KYC verification failed for onboardingId: {}", onboardingId);
 
                 // Trigger BPMN error boundary event
-                throw new BpmnError("GENERIC_ERROR", ApplicationConstants.Workflow.KYC_VERIFICATION_FAILED_MSG);
+                throw new BpmnError("KYC_VERIFICATION_FAILED", ApplicationConstants.Workflow.KYC_VERIFICATION_FAILED_MSG);
             }
 
         } catch (BpmnError e) {
@@ -89,7 +87,7 @@ public class KycDelegate implements JavaDelegate {
             execution.setVariable(ApplicationConstants.ProcessVariables.ERROR_MESSAGE, "KYC verification error: " + e.getMessage());
             execution.setVariable(ApplicationConstants.ProcessVariables.FAILED_STEP_ID, ApplicationConstants.Workflow.FAILED_STEP_KYC);
             // Convert regular exceptions to BPMN errors to trigger boundary events
-            throw new BpmnError("GENERIC_ERROR", "KYC verification error: " + e.getMessage());
+            throw new BpmnError("KYC_VERIFICATION_FAILED", "KYC verification error: " + e.getMessage());
         }
     }
 }

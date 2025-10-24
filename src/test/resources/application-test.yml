@@ -32,7 +32,6 @@ spring:
       fail-on-unknown-properties: false
 
 # Email Configuration for Testing
-spring:
   mail:
     host: localhost
     port: 587
@@ -118,7 +117,7 @@ management:
   endpoint:
     health:
       show-details: never
-      show-components: false
+      show-components: never
       probes:
         enabled: false
     info:

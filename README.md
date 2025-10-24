@@ -80,10 +80,12 @@ Simple health check endpoint.
    cd bank-abc-onboarding
    ```
 
-2. **Build the project**
+2. **Build the project** (Required for OpenAPI code generation)
    ```bash
    mvn clean install
    ```
+   
+   **Important**: This project uses OpenAPI code generation for DTOs and interfaces. You must run `mvn clean install` or `mvn clean compile` before running the application, otherwise you will face compilation issues due to missing generated classes.
 
 3. **Run the application**
    ```bash
@@ -105,7 +107,14 @@ Simple health check endpoint.
 
 This application uses smtp4dev for local email testing. smtp4dev is a development SMTP server that captures all outgoing emails and provides a web interface to view them.
 
-### Starting smtp4dev
+### Prerequisites
+
+- Docker and Docker Compose installed
+- Ports 2525 and 8081 available on your local machine
+
+### Setting Up Local Email Server
+
+#### Step 1: Start smtp4dev
 
 ```bash
 # Start smtp4dev for email testing
@@ -115,7 +124,23 @@ docker-compose up -d
 docker-compose ps
 ```
 
-### Accessing smtp4dev
+Expected output:
+```
+NAME                    IMAGE                 COMMAND                  SERVICE             CREATED             STATUS              PORTS
+bank-abc-smtp4dev       rnwood/smtp4dev:v3    "dotnet Smtp4dev.dll"   smtp4dev            2 minutes ago       Up 2 minutes        0.0.0.0:2525->25/tcp, 0.0.0.0:8081->80/tcp
+```
+
+#### Step 2: Verify Email Server
+
+```bash
+# Check container logs
+docker-compose logs smtp4dev
+
+# Test SMTP connection (optional)
+telnet localhost 2525
+```
+
+#### Step 3: Access Email Interface
 
 - **Web UI**: http://localhost:8081
 - **SMTP Server**: localhost:2525
@@ -152,7 +177,10 @@ spring:
    mvn spring-boot:run
    ```
 
-3. **Trigger email sending** by completing onboarding steps that send notifications
+3. **Trigger email sending** by completing onboarding steps that send notifications:
+   - Start an onboarding process via API
+   - Upload documents to trigger KYC verification
+   - Complete the workflow to trigger account creation notifications
 
 4. **View captured emails** at http://localhost:8081
 
@@ -329,13 +357,28 @@ mvn test jacoco:report
 
 ### Code Generation
 
-The project uses OpenAPI code generation for DTOs and interfaces:
+**⚠️ IMPORTANT**: This project uses OpenAPI code generation for DTOs and interfaces. The generated classes are required for compilation and runtime.
+
+#### Generate OpenAPI Classes
 
 ```bash
+# Generate OpenAPI models and interfaces
 mvn clean compile
+
+# Or use the full build process
+mvn clean install
 ```
 
 This generates the OpenAPI models and interfaces in the `target/generated-sources/openapi` directory.
+
+#### Why Code Generation is Required
+
+- **API DTOs**: All request/response objects are generated from `openapi.yaml`
+- **Service Interfaces**: API client interfaces are auto-generated
+- **Type Safety**: Ensures compile-time type checking for API contracts
+- **Consistency**: Keeps API models in sync with OpenAPI specification
+
+**Note**: Without running the build process, you will encounter compilation errors due to missing generated classes.
 
 ## Monitoring and Management
 

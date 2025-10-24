@@ -2,6 +2,7 @@ package com.bankabc.onboarding.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -21,6 +22,7 @@ import com.bankabc.onboarding.openapi.model.OnboardingStartResponse;
 import com.bankabc.onboarding.openapi.model.OnboardingStatusResponse;
 import com.bankabc.onboarding.service.BpmnProcessService;
 import com.bankabc.onboarding.service.FileStorageService;
+import com.bankabc.onboarding.service.FileValidationService;
 import com.bankabc.onboarding.service.OnboardingService;
 import com.bankabc.onboarding.service.WorkflowConfigurationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -53,6 +55,8 @@ class OnboardingWorkflowControllerSimpleTest {
     @Mock
     private WorkflowConfigurationService workflowConfigurationService;
 
+    @Mock
+    private FileValidationService fileValidationService;
 
     @InjectMocks
     private OnboardingWorkflowController controller;
@@ -143,6 +147,8 @@ class OnboardingWorkflowControllerSimpleTest {
                 "photo", "photo.jpg", "image/jpeg", "photo content".getBytes());
 
         when(bpmnProcessService.isProcessActive(anyString())).thenReturn(true);
+        doNothing().when(fileValidationService).validatePassport(any());
+        doNothing().when(fileValidationService).validatePhoto(any());
         when(fileStorageService.storeFile(any(), anyString())).thenReturn("/path/to/file");
         when(bpmnProcessService.correlateDocumentUpload(anyString(), any()))
                 .thenReturn(statusResponse);

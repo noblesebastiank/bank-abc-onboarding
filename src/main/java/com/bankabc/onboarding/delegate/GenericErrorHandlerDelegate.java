@@ -42,9 +42,9 @@ public class GenericErrorHandlerDelegate implements JavaDelegate {
             Onboarding onboarding = delegateUtils.getOnboarding(execution);
             UUID onboardingId = onboarding.getId();
 
-            // Don't update onboarding status to FAILED - let each step handle its own status
-            // The document upload step should remain as DOCUMENTS_UPLOADED
-            // Only the specific failed step should be marked as failed
+            // Update onboarding status to FAILED when any step fails
+            onboarding.setStatus(OnboardingStatus.FAILED);
+            onboardingService.saveOnboarding(onboarding);
 
             String failedStepId = Optional.ofNullable((String) execution.getVariable("failedStepId"))
                 .orElse("unknown-step");
@@ -75,11 +75,11 @@ public class GenericErrorHandlerDelegate implements JavaDelegate {
                 log.warn("Failed to send error notification for onboardingId: {} | Type: {}", onboardingId, errorType);
             }
 
-            // Update BPMN variables - don't set global status to FAILED
+            // Update BPMN variables
             execution.setVariable(ApplicationConstants.ProcessVariables.ERROR_TYPE, errorType);
             execution.setVariable(ApplicationConstants.ProcessVariables.ERROR_MESSAGE, errorMessage);
             execution.setVariable(ApplicationConstants.ProcessVariables.NOTIFICATION_SENT, notificationSent);
-            // Don't set global status - let each step handle its own status
+            execution.setVariable(ApplicationConstants.ProcessVariables.STATUS, OnboardingStatus.FAILED.name());
 
         } catch (Exception e) {
             log.error("Critical failure inside GenericErrorHandlerDelegate (processInstanceId: {})", processInstanceId, e);

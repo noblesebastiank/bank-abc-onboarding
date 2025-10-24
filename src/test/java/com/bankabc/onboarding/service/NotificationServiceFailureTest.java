@@ -4,9 +4,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
 
 /**
  * Test class for NotificationService failure notification functionality.
@@ -14,8 +18,16 @@ import static org.junit.jupiter.api.Assertions.*;
 @ExtendWith(MockitoExtension.class)
 class NotificationServiceFailureTest {
 
+    @Mock
+    private EmailService emailService;
+
     @InjectMocks
     private NotificationService notificationService;
+
+    @BeforeEach
+    void setUp() throws Exception {
+        // No setup needed - the service will handle email sending internally
+    }
 
     @Test
     void testSendFailureEmailNotification() {

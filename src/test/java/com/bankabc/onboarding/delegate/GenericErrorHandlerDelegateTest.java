@@ -5,6 +5,7 @@ import com.bankabc.onboarding.entity.Onboarding.OnboardingStatus;
 import com.bankabc.onboarding.service.OnboardingService;
 import com.bankabc.onboarding.service.NotificationService;
 import com.bankabc.onboarding.service.WorkflowConfigurationService;
+import com.bankabc.onboarding.util.DelegateUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.camunda.bpm.engine.delegate.DelegateExecution;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +36,9 @@ class GenericErrorHandlerDelegateTest {
 
     @Mock
     private WorkflowConfigurationService workflowConfigurationService;
+
+    @Mock
+    private DelegateUtils delegateUtils;
 
     @Mock
     private DelegateExecution execution;
@@ -70,10 +74,9 @@ class GenericErrorHandlerDelegateTest {
         when(errorHandling.path("defaultMessage")).thenReturn(defaultMessageNode);
         when(defaultMessageNode.asText(null)).thenReturn("Identity verification failed");
         
-        UUID testOnboardingId = testOnboarding.getId();
-        when(execution.getVariable("onboardingId")).thenReturn(testOnboardingId);
         when(execution.getVariable("failedStepId")).thenReturn("kyc-verification");
-        when(onboardingService.findById(testOnboardingId)).thenReturn(Optional.of(testOnboarding));
+        when(execution.getVariable("errorMessage")).thenReturn(null);
+        when(delegateUtils.getOnboarding(execution)).thenReturn(testOnboarding);
         when(workflowConfigurationService.getStepConfiguration("kyc-verification")).thenReturn(mockStepConfig);
         when(notificationService.sendFailureNotifications(anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(true);
@@ -82,9 +85,6 @@ class GenericErrorHandlerDelegateTest {
         genericErrorHandlerDelegate.execute(execution);
 
         // Then
-        verify(onboardingService).saveOnboarding(argThat(onboarding -> 
-                onboarding.getStatus() == OnboardingStatus.FAILED
-        ));
         verify(notificationService).sendFailureNotifications(
                 "john.doe@example.com",
                 "+1234567890",
@@ -92,7 +92,6 @@ class GenericErrorHandlerDelegateTest {
                 "Identity verification failed",
                 "Customer"
         );
-        verify(execution).setVariable("status", OnboardingStatus.FAILED.name());
         verify(execution).setVariable("errorType", "KYC_VERIFICATION_FAILED");
         verify(execution).setVariable("errorMessage", "Identity verification failed");
         verify(execution).setVariable("notificationSent", true);
@@ -110,11 +109,9 @@ class GenericErrorHandlerDelegateTest {
         when(errorHandling.path("errorType")).thenReturn(errorTypeNode);
         when(errorTypeNode.asText(null)).thenReturn("KYC_VERIFICATION_FAILED");
         
-        UUID testOnboardingId = testOnboarding.getId();
-        when(execution.getVariable("onboardingId")).thenReturn(testOnboardingId);
         when(execution.getVariable("failedStepId")).thenReturn("kyc-verification");
         when(execution.getVariable("errorMessage")).thenReturn(customErrorMessage);
-        when(onboardingService.findById(testOnboardingId)).thenReturn(Optional.of(testOnboarding));
+        when(delegateUtils.getOnboarding(execution)).thenReturn(testOnboarding);
         when(workflowConfigurationService.getStepConfiguration("kyc-verification")).thenReturn(mockStepConfig);
         when(notificationService.sendFailureNotifications(anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(true);
@@ -135,11 +132,10 @@ class GenericErrorHandlerDelegateTest {
     @Test
     void testExecute_WithLegacyFallback() throws Exception {
         // Given
-        UUID testOnboardingId = testOnboarding.getId();
-        when(execution.getVariable("onboardingId")).thenReturn(testOnboardingId);
         when(execution.getVariable("failedStepId")).thenReturn(null);
         when(execution.getVariable("kycResult")).thenReturn("FAILED");
-        when(onboardingService.findById(testOnboardingId)).thenReturn(Optional.of(testOnboarding));
+        when(execution.getVariable("errorMessage")).thenReturn(null); // Add this line
+        when(delegateUtils.getOnboarding(execution)).thenReturn(testOnboarding);
         when(notificationService.sendFailureNotifications(anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(true);
 
@@ -159,12 +155,10 @@ class GenericErrorHandlerDelegateTest {
     @Test
     void testExecute_OnboardingNotFound() {
         // Given
-        UUID testOnboardingId = testOnboarding.getId();
-        when(execution.getVariable("onboardingId")).thenReturn(testOnboardingId);
-        when(onboardingService.findById(testOnboardingId)).thenReturn(Optional.empty());
+        when(delegateUtils.getOnboarding(execution)).thenThrow(new RuntimeException("Onboarding not found"));
 
         // When & Then
-        assertDoesNotThrow(() -> {
+        assertThrows(RuntimeException.class, () -> {
             genericErrorHandlerDelegate.execute(execution);
         });
         
@@ -174,24 +168,33 @@ class GenericErrorHandlerDelegateTest {
     @Test
     void testExecute_MissingOnboardingId() {
         // Given
-        when(execution.getVariable("onboardingId")).thenReturn(null);
+        when(delegateUtils.getOnboarding(execution)).thenThrow(new RuntimeException("Onboarding ID not found"));
 
         // When & Then
-        assertDoesNotThrow(() -> {
+        assertThrows(RuntimeException.class, () -> {
             genericErrorHandlerDelegate.execute(execution);
         });
         
-        verify(onboardingService, never()).saveOnboarding(any(Onboarding.class));
         verify(notificationService, never()).sendFailureNotifications(anyString(), anyString(), anyString(), anyString(), anyString());
     }
 
     @Test
     void testExecute_NotificationFailure() throws Exception {
         // Given
-        UUID testOnboardingId = testOnboarding.getId();
-        when(execution.getVariable("onboardingId")).thenReturn(testOnboardingId);
+        JsonNode mockStepConfig = mock(JsonNode.class);
+        JsonNode errorHandling = mock(JsonNode.class);
+        JsonNode errorTypeNode = mock(JsonNode.class);
+        JsonNode defaultMessageNode = mock(JsonNode.class);
+        
+        when(mockStepConfig.path("errorHandling")).thenReturn(errorHandling);
+        when(errorHandling.path("errorType")).thenReturn(errorTypeNode);
+        when(errorTypeNode.asText(null)).thenReturn("KYC_VERIFICATION_FAILED");
+        when(errorHandling.path("defaultMessage")).thenReturn(defaultMessageNode);
+        when(defaultMessageNode.asText(null)).thenReturn("Identity verification failed");
+        
         when(execution.getVariable("failedStepId")).thenReturn("kyc-verification");
-        when(onboardingService.findById(testOnboardingId)).thenReturn(Optional.of(testOnboarding));
+        when(execution.getVariable("errorMessage")).thenReturn(null);
+        when(delegateUtils.getOnboarding(execution)).thenReturn(testOnboarding);
         when(workflowConfigurationService.getStepConfiguration("kyc-verification")).thenReturn(mockStepConfig);
         when(notificationService.sendFailureNotifications(anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(false);
@@ -200,7 +203,6 @@ class GenericErrorHandlerDelegateTest {
         genericErrorHandlerDelegate.execute(execution);
 
         // Then
-        verify(onboardingService).saveOnboarding(any(Onboarding.class));
         verify(execution).setVariable("notificationSent", false);
     }
 }

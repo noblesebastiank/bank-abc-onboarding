@@ -36,13 +36,10 @@ public class VerificationService {
      * @param lastName the customer's last name
      * @param dateOfBirth the customer's date of birth
      * @param ssn the customer's social security number
-     * @param passportPath the path to the passport document
-     * @param photoPath the path to the photo document
      * @return true if verification passes, false otherwise
      */
     public boolean performKycVerification(String firstName, String lastName, 
-                                        java.time.LocalDate dateOfBirth, String ssn,
-                                        String passportPath, String photoPath) {
+                                        java.time.LocalDate dateOfBirth, String ssn) {
         log.info("Starting KYC verification");
         
         try {

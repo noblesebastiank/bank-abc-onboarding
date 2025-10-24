@@ -49,16 +49,13 @@ class EmailServiceTest {
             .body("Test Content")
             .html(false)
             .build();
-            
-        // Mock emailUtil.buildEmailBody to return the email body
-        when(emailUtil.buildEmailBody(any(Email.class))).thenReturn("Test Content");
     }
 
     @Test
     void testSendMail_WithSimpleEmail_Success() throws Exception {
         // Given
         testEmail.setHtml(false);
-        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        when(emailUtil.buildEmailBody(any(Email.class))).thenReturn("Test Content");
 
         // When
         emailService.sendMail(testEmail);
@@ -72,6 +69,7 @@ class EmailServiceTest {
         // Given
         testEmail.setHtml(true);
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        when(emailUtil.buildEmailBody(any(Email.class))).thenReturn("Test HTML Content");
 
         // When
         emailService.sendMail(testEmail);
@@ -118,6 +116,7 @@ class EmailServiceTest {
         testEmail.setToList(new String[]{"test1@example.com", "test2@example.com"});
         testEmail.setHtml(true);
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        when(emailUtil.buildEmailBody(any(Email.class))).thenReturn("Test HTML Content");
 
         // When
         emailService.sendMail(testEmail);

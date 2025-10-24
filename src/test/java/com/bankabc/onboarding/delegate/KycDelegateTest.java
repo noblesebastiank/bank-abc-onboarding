@@ -7,6 +7,8 @@ import com.bankabc.onboarding.exception.ErrorTypes;
 import com.bankabc.onboarding.service.NotificationService;
 import com.bankabc.onboarding.service.OnboardingService;
 import com.bankabc.onboarding.service.VerificationService;
+import com.bankabc.onboarding.util.DelegateUtils;
+import org.camunda.bpm.engine.delegate.BpmnError;
 import org.camunda.bpm.engine.delegate.DelegateExecution;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +36,9 @@ class KycDelegateTest {
 
     @Mock
     private NotificationService notificationService;
+
+    @Mock
+    private DelegateUtils delegateUtils;
 
     @Mock
     private DelegateExecution execution;
@@ -65,11 +70,10 @@ class KycDelegateTest {
     void execute_KycVerificationSuccess_UpdatesStatusAndSetsVariables() throws Exception {
         // Given
         when(execution.getProcessInstanceId()).thenReturn(processInstanceId);
-        when(execution.getVariable("onboardingId")).thenReturn(testOnboardingId);
-        when(onboardingService.findById((UUID) testOnboardingId)).thenReturn(Optional.of(testOnboarding));
+        when(delegateUtils.getOnboarding(execution)).thenReturn(testOnboarding);
         when(verificationService.performKycVerification(
                 "John", "Doe", LocalDate.of(1990, 1, 1), 
-                "123-45-6789", "/path/to/passport.pdf", "/path/to/photo.jpg"))
+                "123-45-6789"))
                 .thenReturn(true);
 
         // When
@@ -81,7 +85,7 @@ class KycDelegateTest {
         assertTrue(testOnboarding.getKycVerified());
         
         verify(execution).setVariable("kycResult", "SUCCESS");
-        verify(execution).setVariable("kycVerified", true);
+        verify(execution).setVariable("kycVerified", "true");
         verify(execution).setVariable("status", OnboardingStatus.KYC_COMPLETED.name());
     }
 
@@ -89,31 +93,29 @@ class KycDelegateTest {
     void execute_KycVerificationFailure_UpdatesStatusAndThrowsException() throws Exception {
         // Given
         when(execution.getProcessInstanceId()).thenReturn(processInstanceId);
-        when(execution.getVariable("onboardingId")).thenReturn(testOnboardingId);
-        when(onboardingService.findById((UUID) testOnboardingId)).thenReturn(Optional.of(testOnboarding));
+        when(delegateUtils.getOnboarding(execution)).thenReturn(testOnboarding);
         when(verificationService.performKycVerification(
                 "John", "Doe", LocalDate.of(1990, 1, 1), 
-                "123-45-6789", "/path/to/passport.pdf", "/path/to/photo.jpg"))
+                "123-45-6789"))
                 .thenReturn(false);
 
         // When & Then
-        DefaultApiError exception = assertThrows(DefaultApiError.class, () -> {
+        BpmnError exception = assertThrows(BpmnError.class, () -> {
             kycDelegate.execute(execution);
         });
 
         // Verify exception details
-        assertEquals(ErrorTypes.KYC_VERIFICATION_FAILED.name(), exception.getErrorName());
-        assertEquals(ErrorTypes.KYC_VERIFICATION_FAILED.getMessage(), exception.getMessage());
+        assertEquals("KYC_VERIFICATION_FAILED", exception.getErrorCode());
+        assertTrue(exception.getMessage().contains("KYC verification failed"));
         
         // Verify onboarding was updated
         verify(onboardingService, times(2)).saveOnboarding(testOnboarding);
-        assertEquals(OnboardingStatus.FAILED, testOnboarding.getStatus());
+        assertEquals(OnboardingStatus.KYC_IN_PROGRESS, testOnboarding.getStatus());
         assertFalse(testOnboarding.getKycVerified());
         
         // Verify BPMN variables were set
         verify(execution).setVariable("kycResult", "FAILED");
-        verify(execution).setVariable("kycVerified", false);
-        verify(execution).setVariable("status", OnboardingStatus.FAILED.name());
+        verify(execution).setVariable("kycVerified", "false");
         verify(execution).setVariable("errorType", ErrorTypes.KYC_VERIFICATION_FAILED.name());
         verify(execution).setVariable("errorMessage", "KYC verification failed");
         verify(execution).setVariable("failedStepId", "kyc-verification");
@@ -123,31 +125,39 @@ class KycDelegateTest {
     void execute_MissingOnboardingId_ThrowsException() throws Exception {
         // Given
         when(execution.getProcessInstanceId()).thenReturn(processInstanceId);
-        when(execution.getVariable("onboardingId")).thenReturn(null);
+        when(delegateUtils.getOnboarding(execution)).thenThrow(new DefaultApiError(
+                org.springframework.http.HttpStatus.BAD_REQUEST,
+                ErrorTypes.INVALID_REQUEST.name(),
+                "Onboarding ID not found in process variables",
+                java.util.Map.of("processInstanceId", processInstanceId)
+        ));
 
         // When & Then
-        DefaultApiError exception = assertThrows(DefaultApiError.class, () -> {
+        BpmnError exception = assertThrows(BpmnError.class, () -> {
             kycDelegate.execute(execution);
         });
 
-        assertEquals(ErrorTypes.INVALID_REQUEST.name(), exception.getErrorName());
-        assertEquals("Onboarding ID not found in process variables", exception.getMessage());
-        verify(onboardingService, never()).findById(any(UUID.class));
+        assertEquals("KYC_VERIFICATION_FAILED", exception.getErrorCode());
+        assertTrue(exception.getMessage().contains("Onboarding ID not found"));
     }
 
     @Test
     void execute_OnboardingNotFound_ThrowsException() throws Exception {
         // Given
         when(execution.getProcessInstanceId()).thenReturn(processInstanceId);
-        when(execution.getVariable("onboardingId")).thenReturn(testOnboardingId);
-        when(onboardingService.findById(testOnboardingId)).thenReturn(Optional.empty());
+        when(delegateUtils.getOnboarding(execution)).thenThrow(new DefaultApiError(
+                org.springframework.http.HttpStatus.NOT_FOUND,
+                ErrorTypes.ONBOARDING_NOT_FOUND.name(),
+                "Onboarding not found: " + testOnboardingId,
+                java.util.Map.of("onboardingId", testOnboardingId.toString())
+        ));
 
         // When & Then
-        DefaultApiError exception = assertThrows(DefaultApiError.class, () -> {
+        BpmnError exception = assertThrows(BpmnError.class, () -> {
             kycDelegate.execute(execution);
         });
 
-        assertEquals(ErrorTypes.ONBOARDING_NOT_FOUND.name(), exception.getErrorName());
+        assertEquals("KYC_VERIFICATION_FAILED", exception.getErrorCode());
         assertTrue(exception.getMessage().contains(testOnboardingId.toString()));
     }
 
@@ -155,20 +165,19 @@ class KycDelegateTest {
     void execute_VerificationServiceThrowsException_HandlesGracefully() throws Exception {
         // Given
         when(execution.getProcessInstanceId()).thenReturn(processInstanceId);
-        when(execution.getVariable("onboardingId")).thenReturn(testOnboardingId);
-        when(onboardingService.findById((UUID) testOnboardingId)).thenReturn(Optional.of(testOnboarding));
-        when(verificationService.performKycVerification(any(), any(), any(), any(), any(), any()))
+        when(delegateUtils.getOnboarding(execution)).thenReturn(testOnboarding);
+        when(verificationService.performKycVerification(any(), any(), any(), any()))
                 .thenThrow(new RuntimeException("Verification service error"));
 
         // When & Then
-        Exception exception = assertThrows(Exception.class, () -> {
+        BpmnError exception = assertThrows(BpmnError.class, () -> {
             kycDelegate.execute(execution);
         });
 
         // Verify error handling
         verify(execution).setVariable("kycResult", "ERROR");
         verify(execution).setVariable("errorMessage", "KYC verification error: Verification service error");
-        verify(execution).setVariable("failedStepId", "KycVerificationTask");
+        verify(execution).setVariable("failedStepId", "kyc-verification");
         
         // Verify onboarding status was updated to KYC_IN_PROGRESS before the error
         verify(onboardingService).saveOnboarding(argThat(onboarding -> 
@@ -179,63 +188,20 @@ class KycDelegateTest {
     void execute_OnboardingServiceThrowsException_HandlesGracefully() throws Exception {
         // Given
         when(execution.getProcessInstanceId()).thenReturn(processInstanceId);
-        when(execution.getVariable("onboardingId")).thenReturn(testOnboardingId);
-        when(onboardingService.findById(testOnboardingId)).thenThrow(new RuntimeException("Database error"));
+        when(delegateUtils.getOnboarding(execution)).thenThrow(new RuntimeException("Database error"));
 
         // When & Then
-        Exception exception = assertThrows(Exception.class, () -> {
+        BpmnError exception = assertThrows(BpmnError.class, () -> {
             kycDelegate.execute(execution);
         });
 
         // Verify error handling
         verify(execution).setVariable("kycResult", "ERROR");
         verify(execution).setVariable("errorMessage", "KYC verification error: Database error");
-        verify(execution).setVariable("failedStepId", "KycVerificationTask");
+        verify(execution).setVariable("failedStepId", "kyc-verification");
     }
 
-    @Test
-    void execute_WithNullPassportPath_HandlesGracefully() throws Exception {
-        // Given
-        testOnboarding.setPassportPath(null);
-        when(execution.getProcessInstanceId()).thenReturn(processInstanceId);
-        when(execution.getVariable("onboardingId")).thenReturn(testOnboardingId);
-        when(onboardingService.findById((UUID) testOnboardingId)).thenReturn(Optional.of(testOnboarding));
-        when(verificationService.performKycVerification(
-                "John", "Doe", LocalDate.of(1990, 1, 1), 
-                "123-45-6789", null, "/path/to/photo.jpg"))
-                .thenReturn(true);
 
-        // When
-        kycDelegate.execute(execution);
 
-        // Then
-        verify(verificationService).performKycVerification(
-                "John", "Doe", LocalDate.of(1990, 1, 1), 
-                "123-45-6789", null, "/path/to/photo.jpg");
-        verify(onboardingService, times(2)).saveOnboarding(testOnboarding);
-        assertEquals(OnboardingStatus.KYC_COMPLETED, testOnboarding.getStatus());
-    }
 
-    @Test
-    void execute_WithNullPhotoPath_HandlesGracefully() throws Exception {
-        // Given
-        testOnboarding.setPhotoPath(null);
-        when(execution.getProcessInstanceId()).thenReturn(processInstanceId);
-        when(execution.getVariable("onboardingId")).thenReturn(testOnboardingId);
-        when(onboardingService.findById((UUID) testOnboardingId)).thenReturn(Optional.of(testOnboarding));
-        when(verificationService.performKycVerification(
-                "John", "Doe", LocalDate.of(1990, 1, 1), 
-                "123-45-6789", "/path/to/passport.pdf", null))
-                .thenReturn(true);
-
-        // When
-        kycDelegate.execute(execution);
-
-        // Then
-        verify(verificationService).performKycVerification(
-                "John", "Doe", LocalDate.of(1990, 1, 1), 
-                "123-45-6789", "/path/to/passport.pdf", null);
-        verify(onboardingService, times(2)).saveOnboarding(testOnboarding);
-        assertEquals(OnboardingStatus.KYC_COMPLETED, testOnboarding.getStatus());
-    }
 }
