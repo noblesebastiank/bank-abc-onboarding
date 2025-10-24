@@ -76,8 +76,6 @@ class OnboardingWorkflowControllerTest {
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
 
-        // File validation is now handled by DMN decision table
-
         validRequest = new OnboardingStartRequest()
                 .firstName("Emma")
                 .lastName("de Vries")
@@ -192,9 +190,6 @@ class OnboardingWorkflowControllerTest {
                 .andExpect(jsonPath("$.currentStep").value("KYC verification in progress"));
     }
 
-    // Health check test removed - Actuator endpoints not available in unit test context
-    // Use integration tests for Actuator endpoint testing
-
     @Test
     void startOnboarding_InvalidRequest_ReturnsBadRequest() throws Exception {
         OnboardingStartRequest invalidRequest = new OnboardingStartRequest()
@@ -275,6 +270,4 @@ class OnboardingWorkflowControllerTest {
                 .andExpect(jsonPath("$.message").value(ErrorTypes.ONBOARDING_NOT_FOUND.getMessage()))
                 .andExpect(jsonPath("$.additionalDetails.processInstanceId").value("12345"));
     }
-
-    // File validation tests removed - validation is now handled by DMN decision table
 }

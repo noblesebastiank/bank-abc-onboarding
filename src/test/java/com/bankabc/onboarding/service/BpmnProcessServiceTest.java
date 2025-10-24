@@ -52,10 +52,12 @@ class BpmnProcessServiceTest {
     private ProcessInstanceQuery processInstanceQuery;
     @Mock
     private MessageCorrelationBuilder messageCorrelationBuilder;
-    @Mock
-    private OnboardingMapper onboardingMapper;
+
     @Mock
     private WorkflowConfigurationService workflowConfigurationService;
+    
+    @Mock
+    private OnboardingMapper onboardingMapper;
 
     @InjectMocks
     private BpmnProcessService bpmnProcessService;
@@ -123,17 +125,6 @@ class BpmnProcessServiceTest {
         
         // Mock mapper behavior
         when(onboardingMapper.toEntity(any(OnboardingStartRequest.class))).thenReturn(onboardingEntity);
-        when(onboardingMapper.toStatusDto(any(Onboarding.class))).thenReturn(new OnboardingStatusResponse()
-                .processInstanceId("12345")
-                .status(OnboardingStatusResponse.StatusEnum.KYC_IN_PROGRESS)
-                .message("KYC verification in progress")
-                .createdAt(OffsetDateTime.now(ZoneOffset.UTC))
-                .updatedAt(OffsetDateTime.now(ZoneOffset.UTC))
-                .kycVerified(false)
-                .addressVerified(false)
-                .currentStep("KYC verification in progress")
-                .nextStep("kyc_verification")
-                );
         
         // Mock WorkflowConfigurationService
         when(workflowConfigurationService.getNextStepDescription(any(OnboardingStatus.class)))

@@ -8,7 +8,6 @@ import com.bankabc.onboarding.constants.ApplicationConstants;
 import com.bankabc.onboarding.entity.Onboarding;
 import com.bankabc.onboarding.entity.Onboarding.OnboardingStatus;
 import com.bankabc.onboarding.openapi.model.OnboardingStartRequest;
-import com.bankabc.onboarding.openapi.model.OnboardingStatusResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
@@ -51,25 +50,6 @@ public interface OnboardingMapper {
     @Mapping(source = "gender", target = "gender", qualifiedByName = "mapGender")
     Onboarding toEntity(OnboardingStartRequest request);
 
-    /**
-     * Maps Onboarding entity to OnboardingStatusResponse DTO.
-     * 
-     * @param entity the onboarding entity
-     * @return OnboardingStatusResponse DTO
-     */
-    @Mapping(target = "nextStep", ignore = true)
-    @Mapping(target = "errorMessage", ignore = true)
-    @Mapping(target = "currentStep", ignore = true)
-    @Mapping(source = "processInstanceId", target = "processInstanceId")
-    @Mapping(source = "status", target = "status", qualifiedByName = "mapStatusToEnum")
-    @Mapping(target = "message", expression = "java(entity.getStatus().getDescription())")
-    @Mapping(source = "accountNumber", target = "accountNumber")
-    @Mapping(source = "createdAt", target = "createdAt")
-    @Mapping(source = "updatedAt", target = "updatedAt")
-    @Mapping(source = "completedAt", target = "completedAt")
-    @Mapping(source = "kycVerified", target = "kycVerified")
-    @Mapping(source = "addressVerified", target = "addressVerified")
-    OnboardingStatusResponse toStatusDto(Onboarding entity);
 
 
     /**
@@ -99,18 +79,5 @@ public interface OnboardingMapper {
         return Onboarding.Gender.valueOf(gender.getValue());
     }
 
-    /**
-     * Maps entity OnboardingStatus to OpenAPI StatusEnum.
-     * 
-     * @param status the entity status
-     * @return OpenAPI status enum
-     */
-    @Named("mapStatusToEnum")
-    default OnboardingStatusResponse.StatusEnum mapStatusToEnum(OnboardingStatus status) {
-        if (status == null) {
-            return null;
-        }
-        return OnboardingStatusResponse.StatusEnum.fromValue(status.name());
-    }
 
 }

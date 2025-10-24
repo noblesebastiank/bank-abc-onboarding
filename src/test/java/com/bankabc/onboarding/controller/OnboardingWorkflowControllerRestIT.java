@@ -1,9 +1,30 @@
 package com.bankabc.onboarding.controller;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.Map;
+import java.util.UUID;
+
+import com.bankabc.onboarding.openapi.model.DocumentUploadResponse;
 import com.bankabc.onboarding.openapi.model.OnboardingStartRequest;
 import com.bankabc.onboarding.openapi.model.OnboardingStartResponse;
 import com.bankabc.onboarding.openapi.model.OnboardingStatusResponse;
-import com.bankabc.onboarding.openapi.model.DocumentUploadResponse;
 import com.bankabc.onboarding.service.BpmnProcessService;
 import com.bankabc.onboarding.service.FileStorageService;
 import com.bankabc.onboarding.service.FileValidationService;
@@ -21,17 +42,6 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.LocalDate;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
  * REST endpoint integration tests for OnboardingWorkflowController.
@@ -403,6 +413,59 @@ class OnboardingWorkflowControllerRestIT {
                 .postalCode("1015CD")
                 .country("Netherlands")
                 .ssn("123456789"); // Invalid SSN format (missing dashes)
+
+        // When & Then
+        mockMvc.perform(post("/api/v1/onboarding/start")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invalidRequest)))
+                .andExpect(status().isBadRequest());
+
+        verify(bpmnProcessService, never()).startOnboardingProcess(any(OnboardingStartRequest.class));
+    }
+
+
+    @Test
+    void startOnboardingWorkflow_EmptyFirstName_ReturnsBadRequest() throws Exception {
+        // Given
+        OnboardingStartRequest invalidRequest = new OnboardingStartRequest()
+                .firstName("") // Empty first name
+                .lastName("de Vries")
+                .gender(OnboardingStartRequest.GenderEnum.F)
+                .dob(LocalDate.of(1990, 5, 20))
+                .phone("+31612345678")
+                .email("emma.devries@example.com")
+                .nationality("Dutch")
+                .street("Keizersgracht 1")
+                .city("Amsterdam")
+                .postalCode("1015CD")
+                .country("Netherlands")
+                .ssn("123-45-6789");
+
+        // When & Then
+        mockMvc.perform(post("/api/v1/onboarding/start")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invalidRequest)))
+                .andExpect(status().isBadRequest());
+
+        verify(bpmnProcessService, never()).startOnboardingProcess(any(OnboardingStartRequest.class));
+    }
+
+    @Test
+    void startOnboardingWorkflow_InvalidPhoneFormat_ReturnsBadRequest() throws Exception {
+        // Given
+        OnboardingStartRequest invalidRequest = new OnboardingStartRequest()
+                .firstName("Emma")
+                .lastName("de Vries")
+                .gender(OnboardingStartRequest.GenderEnum.F)
+                .dob(LocalDate.of(1990, 5, 20))
+                .phone("123456789") // Invalid phone format (missing +)
+                .email("emma.devries@example.com")
+                .nationality("Dutch")
+                .street("Keizersgracht 1")
+                .city("Amsterdam")
+                .postalCode("1015CD")
+                .country("Netherlands")
+                .ssn("123-45-6789");
 
         // When & Then
         mockMvc.perform(post("/api/v1/onboarding/start")
