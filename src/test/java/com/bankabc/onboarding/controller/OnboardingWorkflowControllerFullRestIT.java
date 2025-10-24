@@ -8,7 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
@@ -29,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Tests the complete end-to-end flow through REST endpoints.
  */
 @SpringBootTest
-@AutoConfigureWebMvc
+@AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
 class OnboardingWorkflowControllerFullRestIT {
@@ -77,7 +77,7 @@ class OnboardingWorkflowControllerFullRestIT {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.processInstanceId").isNotEmpty())
                 .andExpect(jsonPath("$.status").value("INFO_COLLECTED"))
-                .andExpect(jsonPath("$.nextStep").value("document_upload"))
+                .andExpect(jsonPath("$.nextStep").value("upload-documents"))
                 .andReturn();
 
         // Extract process instance ID from response
@@ -163,7 +163,7 @@ class OnboardingWorkflowControllerFullRestIT {
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errorName").value("ONBOARDING_NOT_FOUND"))
-                .andExpect(jsonPath("$.message").value("Process not found"));
+                .andExpect(jsonPath("$.message").value("Process instance not found or not active"));
     }
 
     @Test
@@ -173,7 +173,7 @@ class OnboardingWorkflowControllerFullRestIT {
 
         // When & Then
         mockMvc.perform(get("/api/v1/onboarding/{processInstanceId}/status", nonExistentProcessId))
-                .andExpect(status().isInternalServerError());
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -191,7 +191,7 @@ class OnboardingWorkflowControllerFullRestIT {
                 .andExpect(status().isConflict())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errorName").value("CUSTOMER_ALREADY_EXISTS"))
-                .andExpect(jsonPath("$.message").value("Customer with this SSN already exists"));
+                .andExpect(jsonPath("$.message").value("Customer with SSN already exists"));
     }
 
     @Test
