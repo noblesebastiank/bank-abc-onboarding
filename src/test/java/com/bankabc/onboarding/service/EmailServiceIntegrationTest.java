@@ -1,12 +1,16 @@
 package com.bankabc.onboarding.service;
 
-import com.bankabc.onboarding.config.TestEmailConfig;
 import com.bankabc.onboarding.model.Email;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.context.ActiveProfiles;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -16,11 +20,19 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @SpringBootTest
 @ActiveProfiles("test")
-@Import(TestEmailConfig.class)
 class EmailServiceIntegrationTest {
 
     @Autowired
     private EmailService emailService;
+
+    @MockBean
+    private JavaMailSender javaMailSender;
+
+    @BeforeEach
+    void setUp() {
+        // Mock the createMimeMessage method to return a mocked MimeMessage
+        when(javaMailSender.createMimeMessage()).thenReturn(mock(jakarta.mail.internet.MimeMessage.class));
+    }
 
     @Test
     void testEmailService_ContextLoads() {
