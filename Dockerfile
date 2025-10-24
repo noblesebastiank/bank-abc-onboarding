@@ -1,5 +1,5 @@
-# Use OpenJDK 21 as base image
-FROM openjdk:21-jdk-slim
+# Multi-stage build: Use Eclipse Temurin OpenJDK 21 for building
+FROM eclipse-temurin:21-jdk AS build
 
 # Set working directory
 WORKDIR /app
@@ -20,6 +20,15 @@ COPY src/ src/
 # Build the application
 RUN ./mvnw clean package -DskipTests
 
+# Runtime stage: Use Eclipse Temurin OpenJDK 21 on Ubuntu Jammy (excellent ARM64 compatibility)
+FROM eclipse-temurin:21-jre-jammy
+
+# Set working directory
+WORKDIR /app
+
+# Copy the built JAR file from the build stage
+COPY --from=build /app/target/*.jar app.jar
+
 # Create directory for file storage
 RUN mkdir -p /app/file-storage
 
@@ -30,4 +39,4 @@ EXPOSE 8080
 ENV JAVA_OPTS="-Xmx512m -Xms256m -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
 
 # Run the application
-CMD ["sh", "-c", "java $JAVA_OPTS -jar target/*.jar"]
+CMD ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

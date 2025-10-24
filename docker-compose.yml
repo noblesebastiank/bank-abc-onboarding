@@ -1,4 +1,25 @@
 services:
+  bank-abc-onboarding:
+    build: .
+    container_name: bank-abc-onboarding
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:h2:mem:testdb
+      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.h2.Driver
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=create-drop
+      - SPRING_H2_CONSOLE_ENABLED=true
+      - SPRING_MAIL_HOST=smtp4dev
+      - SPRING_MAIL_PORT=25
+      - SPRING_MAIL_USERNAME=
+      - SPRING_MAIL_PASSWORD=
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=false
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=false
+    depends_on:
+      - smtp4dev
+    restart: unless-stopped
+
   smtp4dev:
     image: rnwood/smtp4dev:v3
     container_name: bank-abc-smtp4dev
