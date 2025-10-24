@@ -1,6 +1,7 @@
 services:
   bank-abc-onboarding:
     build: .
+    platform: linux/amd64
     container_name: bank-abc-onboarding
     ports:
       - "8080:8080"

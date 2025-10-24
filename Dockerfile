@@ -1,5 +1,5 @@
 # Multi-stage build: Use Eclipse Temurin OpenJDK 21 for building
-FROM eclipse-temurin:21-jdk AS build
+FROM --platform=linux/amd64 eclipse-temurin:21-jdk AS build
 
 # Set working directory
 WORKDIR /app
@@ -20,8 +20,8 @@ COPY src/ src/
 # Build the application
 RUN ./mvnw clean package -DskipTests
 
-# Runtime stage: Use Eclipse Temurin OpenJDK 21 on Ubuntu Jammy (excellent ARM64 compatibility)
-FROM eclipse-temurin:21-jre-jammy
+# Runtime stage: Use Eclipse Temurin OpenJDK 21 JRE on Ubuntu Jammy (x86_64 emulation)
+FROM --platform=linux/amd64 eclipse-temurin:21-jre-jammy
 
 # Set working directory
 WORKDIR /app
