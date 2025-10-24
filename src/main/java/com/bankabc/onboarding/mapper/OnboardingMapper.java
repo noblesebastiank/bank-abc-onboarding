@@ -1,32 +1,21 @@
 package com.bankabc.onboarding.mapper;
 
-import com.bankabc.onboarding.openapi.model.OnboardingStartRequest;
-import com.bankabc.onboarding.openapi.model.OnboardingStartResponse;
-import com.bankabc.onboarding.openapi.model.OnboardingStatusResponse;
-import com.bankabc.onboarding.entity.Onboarding;
-import com.bankabc.onboarding.entity.Onboarding.OnboardingStatus;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
-import org.mapstruct.Named;
-import org.mapstruct.NullValuePropertyMappingStrategy;
-import org.mapstruct.factory.Mappers;
-
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.UUID;
 
 import com.bankabc.onboarding.constants.ApplicationConstants;
+import com.bankabc.onboarding.entity.Onboarding;
+import com.bankabc.onboarding.entity.Onboarding.OnboardingStatus;
+import com.bankabc.onboarding.openapi.model.OnboardingStartRequest;
+import com.bankabc.onboarding.openapi.model.OnboardingStatusResponse;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.Named;
+import org.mapstruct.NullValuePropertyMappingStrategy;
 
 /**
  * MapStruct mapper for converting between Onboarding entities and DTOs.
- * 
- * This mapper handles the conversion between:
- * - OnboardingRequest DTO to Onboarding entity
- * - Onboarding entity to OnboardingResponse DTO
- * - Partial updates of Onboarding entities
- * 
  * MapStruct will generate the implementation at compile time.
  */
 @Mapper(
@@ -35,7 +24,6 @@ import com.bankabc.onboarding.constants.ApplicationConstants;
 )
 public interface OnboardingMapper {
 
-    OnboardingMapper INSTANCE = Mappers.getMapper(OnboardingMapper.class);
 
     /**
      * Maps OnboardingStartRequest DTO to Onboarding entity.
@@ -69,6 +57,9 @@ public interface OnboardingMapper {
      * @param entity the onboarding entity
      * @return OnboardingStatusResponse DTO
      */
+    @Mapping(target = "nextStep", ignore = true)
+    @Mapping(target = "errorMessage", ignore = true)
+    @Mapping(target = "currentStep", ignore = true)
     @Mapping(source = "processInstanceId", target = "processInstanceId")
     @Mapping(source = "status", target = "status", qualifiedByName = "mapStatusToEnum")
     @Mapping(target = "message", expression = "java(entity.getStatus().getDescription())")
@@ -80,31 +71,6 @@ public interface OnboardingMapper {
     @Mapping(source = "addressVerified", target = "addressVerified")
     OnboardingStatusResponse toStatusDto(Onboarding entity);
 
-    /**
-     * Updates an existing Onboarding entity with values from OnboardingStartRequest.
-     * Ignores null values in the source.
-     * 
-     * @param request the onboarding start request DTO
-     * @param entity the existing onboarding entity to update
-     */
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "status", ignore = true)
-    @Mapping(target = "accountNumber", ignore = true)
-    @Mapping(target = "kycVerified", ignore = true)
-    @Mapping(target = "kycVerificationNotes", ignore = true)
-    @Mapping(target = "addressVerified", ignore = true)
-    @Mapping(target = "addressVerificationNotes", ignore = true)
-    @Mapping(target = "processInstanceId", ignore = true)
-    @Mapping(target = "processDefinitionKey", ignore = true)
-    @Mapping(target = "passportPath", ignore = true)
-    @Mapping(target = "photoPath", ignore = true)
-    @Mapping(target = "documentUploadedAt", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "completedAt", ignore = true)
-    @Mapping(source = "dob", target = "dateOfBirth")
-    @Mapping(source = "gender", target = "gender", qualifiedByName = "mapGender")
-    void updateEntityFromRequest(OnboardingStartRequest request, @MappingTarget Onboarding entity);
 
     /**
      * Maps LocalDateTime to OffsetDateTime using UTC timezone.
