@@ -5,7 +5,7 @@ on:
     branches:
       - main
 
-env:
+#env:
   # Uncomment and configure these environment variables when ready for deployment
   # ACR_NAME: your-acr-name
   # DEV_RESOURCE_GROUP: your-dev-resource-group

@@ -5,7 +5,7 @@ on:
     branches:
       - main
 
-env:
+#env:
   # Uncomment and configure these environment variables when ready for deployment
   # ACR_NAME: your-acr-name
   # PROD_RESOURCE_GROUP: your-prod-resource-group
