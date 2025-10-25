@@ -52,12 +52,16 @@ spring:
 # OpenAPI/Swagger Configuration
 springdoc:
   api-docs:
+    resolve-schema-properties: true
+    enabled: ${VAR_SWAGGER_UI_ENABLED:true}
     path: /api-docs
+    servers:
+      - url: ${API_DOC_URL:http://localhost:8080/api/v1}
+        description: Bank ABC Onboarding API Server
   swagger-ui:
     path: /swagger-ui.html
-    operations-sorter: method
-    tags-sorter: alpha
-  show-actuator: true
+    disable-swagger-default-url: true
+    url: /api-docs
 
 # Logging Configuration
 logging:

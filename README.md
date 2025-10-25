@@ -62,8 +62,9 @@ The onboarding process follows this workflow:
 
 ### Prerequisites
 
-- Java 21+
-- Maven 3.6+
+- **Java 21** 
+- **Maven 3.6+**
+- **Spring Boot 3.4.3** (Latest stable version)
 - Docker & Docker Compose (optional, for containerized deployment)
 
 ### Option 1: Run with Maven (Recommended for Development)
@@ -82,6 +83,7 @@ mvn spring-boot:run
 # 4. Access the application
 # - API: http://localhost:8080
 # - Swagger UI: http://localhost:8080/swagger-ui.html
+# - API Documentation: http://localhost:8080/api-docs
 # - Camunda Cockpit: http://localhost:8080/camunda
 # - H2 Console: http://localhost:8080/h2-console
 ```
@@ -102,6 +104,7 @@ curl http://localhost:8080/actuator/health
 # 4. Access the application
 # - API: http://localhost:8080
 # - Swagger UI: http://localhost:8080/swagger-ui.html
+# - API Documentation: http://localhost:8080/api-docs
 # - Camunda Cockpit: http://localhost:8080/camunda
 # - Email Testing UI: http://localhost:8081
 ```
@@ -137,6 +140,7 @@ curl http://localhost:8080/actuator/health
    - Go to **File** → **Project Structure** → **Project**
    - Set **Project SDK** to Java 21
    - Set **Project language level** to 21
+   - Ensure **Maven compiler** is set to Java 21
 
 #### 3. Generate DTOs (MANDATORY)
 
@@ -284,6 +288,33 @@ services:
 
 ## API Documentation
 
+### Swagger UI & OpenAPI
+
+The application provides comprehensive API documentation through Swagger UI and OpenAPI 3.0 specification:
+
+- **Swagger UI**: `http://localhost:8080/swagger-ui.html`
+- **OpenAPI JSON**: `http://localhost:8080/api-docs`
+- **API Base URL**: `http://localhost:8080/api/v1`
+
+### SpringDoc Configuration
+
+The application uses SpringDoc OpenAPI 2.7.0 with the following configuration:
+
+```yaml
+springdoc:
+  api-docs:
+    resolve-schema-properties: true
+    enabled: ${VAR_SWAGGER_UI_ENABLED:true}
+    path: /api-docs
+    servers:
+      - url: ${API_DOC_URL:http://localhost:8080/api/v1}
+        description: Bank ABC Onboarding API Server
+  swagger-ui:
+    path: /swagger-ui.html
+    disable-swagger-default-url: true
+    url: /api-docs
+```
+
 ### Core Endpoints
 
 #### Start Onboarding Process
@@ -409,6 +440,30 @@ curl http://localhost:8080/api/v1/onboarding/12345/status
 ### Application Properties
 
 ```yaml
+# Spring Boot Configuration
+spring:
+  application:
+    name: bank-abc-onboarding
+  datasource:
+    url: jdbc:h2:mem:onboardingdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+
+# SpringDoc OpenAPI Configuration
+springdoc:
+  api-docs:
+    resolve-schema-properties: true
+    enabled: true
+    path: /api-docs
+    servers:
+      - url: http://localhost:8080/api/v1
+        description: Bank ABC Onboarding API Server
+  swagger-ui:
+    path: /swagger-ui.html
+    disable-swagger-default-url: true
+    url: /api-docs
+
 # Camunda BPMN Configuration
 camunda:
   bpm:
@@ -617,6 +672,17 @@ Access the Camunda Cockpit at http://localhost:8080/camunda to:
 #### Health Endpoints
 
 - **Actuator Health**: `/actuator/health`
+- **API Documentation**: `/api-docs`
+- **Swagger UI**: `/swagger-ui.html`
+
+### Technology Stack
+
+- **Java 21** - Latest LTS version with modern language features
+- **Spring Boot 3.4.3** - Latest stable version with full Java 21 support
+- **SpringDoc OpenAPI 2.7.0** - Modern API documentation with Swagger UI
+- **Camunda BPM 7.23.0** - Business process management and workflow orchestration
+- **H2 Database** - In-memory database for development
+- **Maven 3.6+** - Build and dependency management
 
 ---
 
