@@ -687,10 +687,6 @@ Access the Camunda Cockpit at http://localhost:8080/camunda to:
 
 ---
 
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
 ## Contributing
 
 1. Fork the repository
