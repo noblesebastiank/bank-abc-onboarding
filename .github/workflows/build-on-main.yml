@@ -1,0 +1,169 @@
+name: Build on Main - Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  # Uncomment and configure these environment variables when ready for deployment
+  # ACR_NAME: your-acr-name
+  # PROD_RESOURCE_GROUP: your-prod-resource-group
+  # PROD_AKS_CLUSTER: your-prod-aks-cluster
+  # PROD_NAMESPACE: production
+
+jobs:
+  build-deploy-prod:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Build and Test with Maven
+        run: mvn clean install
+        continue-on-error: false # Fail fast if tests fail
+
+      - name: Extract version from pom.xml
+        id: version
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+
+      - name: Build Docker image
+        run: |
+          docker build -t bank-abc-onboarding:${{ steps.version.outputs.version }} .
+          docker build -t bank-abc-onboarding:${{ steps.version.outputs.version }}-${{ github.sha }} .
+          docker build -t bank-abc-onboarding:latest .
+
+      # Uncomment the following steps when ready for production deployment
+      
+      # - name: Login to Azure Container Registry
+      #   uses: azure/login@v1
+      #   with:
+      #     creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      # - name: Push Docker image to ACR
+      #   run: |
+      #     az acr login --name ${{ env.ACR_NAME }}
+      #     docker tag bank-abc-onboarding:${{ steps.version.outputs.version }} ${{ env.ACR_NAME }}.azurecr.io/bank-abc-onboarding:${{ steps.version.outputs.version }}
+      #     docker tag bank-abc-onboarding:${{ steps.version.outputs.version }}-${{ github.sha }} ${{ env.ACR_NAME }}.azurecr.io/bank-abc-onboarding:${{ steps.version.outputs.version }}-${{ github.sha }}
+      #     docker tag bank-abc-onboarding:latest ${{ env.ACR_NAME }}.azurecr.io/bank-abc-onboarding:latest
+      #     docker push ${{ env.ACR_NAME }}.azurecr.io/bank-abc-onboarding:${{ steps.version.outputs.version }}
+      #     docker push ${{ env.ACR_NAME }}.azurecr.io/bank-abc-onboarding:${{ steps.version.outputs.version }}-${{ github.sha }}
+      #     docker push ${{ env.ACR_NAME }}.azurecr.io/bank-abc-onboarding:latest
+      
+      # - name: Deploy to Production AKS
+      #   run: |
+      #     az aks get-credentials --resource-group ${{ env.PROD_RESOURCE_GROUP }} --name ${{ env.PROD_AKS_CLUSTER }} --overwrite-existing
+      #     kubectl set image deployment/bank-abc-onboarding bank-abc-onboarding=${{ env.ACR_NAME }}.azurecr.io/bank-abc-onboarding:${{ steps.version.outputs.version }} -n ${{ env.PROD_NAMESPACE }}
+      #     kubectl rollout status deployment/bank-abc-onboarding -n ${{ env.PROD_NAMESPACE }} --timeout=600s
+      
+      # - name: Run Production Integration Tests
+      #   run: |
+      #     # Wait for deployment to be ready
+      #     kubectl wait --for=condition=available --timeout=600s deployment/bank-abc-onboarding -n ${{ env.PROD_NAMESPACE }}
+      #     
+      #     # Get the service URL
+      #     SERVICE_URL=$(kubectl get service bank-abc-onboarding -n ${{ env.PROD_NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      #     echo "Production Service URL: http://$SERVICE_URL:8080"
+      #     
+      #     # Run integration tests against the production service
+      #     mvn test -Dtest=*IntegrationTest -Dservice.url=http://$SERVICE_URL:8080
+      
+      # - name: Run Production Health Checks
+      #   run: |
+      #     # Wait for deployment to be ready
+      #     kubectl wait --for=condition=available --timeout=600s deployment/bank-abc-onboarding -n ${{ env.PROD_NAMESPACE }}
+      #     
+      #     # Get the service URL
+      #     SERVICE_URL=$(kubectl get service bank-abc-onboarding -n ${{ env.PROD_NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      #     
+      #     # Health check endpoint
+      #     HEALTH_URL="http://$SERVICE_URL:8080/actuator/health"
+      #     echo "Checking health endpoint: $HEALTH_URL"
+      #     
+      #     # Wait for service to be healthy
+      #     for i in {1..30}; do
+      #       if curl -f $HEALTH_URL; then
+      #         echo "✅ Service is healthy!"
+      #         break
+      #       else
+      #         echo "⏳ Waiting for service to be healthy... ($i/30)"
+      #         sleep 10
+      #       fi
+      #     done
+      
+      # - name: Create GitHub Release
+      #   uses: actions/create-release@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     tag_name: v${{ steps.version.outputs.version }}
+      #     release_name: Release v${{ steps.version.outputs.version }}
+      #     body: |
+      #       ## 🚀 Production Deployment Complete
+      #       
+      #       **Version**: ${{ steps.version.outputs.version }}
+      #       **Commit**: ${{ github.sha }}
+      #       **Environment**: Production AKS
+      #       **Namespace**: ${{ env.PROD_NAMESPACE }}
+      #       
+      #       **Changes in this release:**
+      #       - See commit history for detailed changes
+      #       
+      #       **Deployment Details:**
+      #       - Image: `${{ env.ACR_NAME }}.azurecr.io/bank-abc-onboarding:${{ steps.version.outputs.version }}`
+      #       - Status: ✅ Deployed Successfully
+      #       - Health: ✅ All checks passed
+      #     draft: false
+      #     prerelease: false
+      
+      # - name: Notify Production Deployment
+      #   uses: actions/github-script@v6
+      #   with:
+      #     script: |
+      #       const commentBody = `🚀 **Production Deployment Complete!**
+      #       
+      #       **Deployment Details:**
+      #       - **Version**: ${{ steps.version.outputs.version }}
+      #       - **Commit**: ${{ github.sha }}
+      #       - **Environment**: Production AKS
+      #       - **Namespace**: ${{ env.PROD_NAMESPACE }}
+      #       - **Status**: ✅ Deployed Successfully
+      #       - **Health**: ✅ All checks passed
+      #       
+      #       **Image Tags:**
+      #       - \`${{ env.ACR_NAME }}.azurecr.io/bank-abc-onboarding:${{ steps.version.outputs.version }}\`
+      #       - \`${{ env.ACR_NAME }}.azurecr.io/bank-abc-onboarding:${{ steps.version.outputs.version }}-${{ github.sha }}\`
+      #       - \`${{ env.ACR_NAME }}.azurecr.io/bank-abc-onboarding:latest\`
+      #       
+      #       **Production Monitoring:**
+      #       - **Logs**: \`kubectl logs -f deployment/bank-abc-onboarding -n ${{ env.PROD_NAMESPACE }}\`
+      #       - **Status**: \`kubectl get pods -n ${{ env.PROD_NAMESPACE }}\`
+      #       - **Service**: \`kubectl get svc -n ${{ env.PROD_NAMESPACE }}\`
+      #       
+      #       **Release**: [v${{ steps.version.outputs.version }}](https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.version }})`;
+      #       
+      #       // Create a commit comment
+      #       await github.rest.repos.createCommitComment({
+      #         owner: context.repo.owner,
+      #         repo: context.repo.repo,
+      #         commit_sha: context.sha,
+      #         body: commentBody
+      #       });
