@@ -35,10 +35,17 @@ This microservice enables customers to complete their bank account onboarding pr
 
 ## Architecture
 
+### Cloud Architecture Overview
+
+![Cloud Architecture Envision Diagram](images/cloud-architecture-envision.png)
+
 ### BPMN Workflow
 
 The onboarding process follows this workflow:
 
+![Bank ABC Onboarding BPMN Workflow](images/bank-abc-onboarding-workflow.png)
+
+**Process Flow:**
 1. **Collect Customer Information** → Wait for documents
 2. **Upload Documents** → KYC Verification → Address Verification → Account Creation → Notify Customer → End
 
