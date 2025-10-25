@@ -294,6 +294,7 @@ The application provides comprehensive API documentation through Swagger UI and 
 
 - **Swagger UI**: `http://localhost:8080/swagger-ui.html`
 - **OpenAPI JSON**: `http://localhost:8080/api-docs`
+- **OpenAPI Contract YAML**: [View Contract](src/main/resources/openapi.yaml)
 - **API Base URL**: `http://localhost:8080/api/v1`
 
 ### SpringDoc Configuration
