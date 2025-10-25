@@ -117,6 +117,7 @@ public class BpmnProcessService {
      * @param uploadedDocuments Map of uploaded document paths
      * @return The document upload response
      */
+    @Transactional
     public OnboardingStatusResponse correlateDocumentUpload(String processInstanceId, Map<String, String> uploadedDocuments) {
         log.info("Correlating document upload for process instance: {}", processInstanceId);
         
